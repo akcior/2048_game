@@ -680,7 +680,7 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 					if (event.key.keysym.sym == SDLK_ESCAPE) exit = 1;
 					else if (event.key.keysym.sym == SDLK_LEFT && page > 1) page--;
 					else if (event.key.keysym.sym == SDLK_RIGHT && page < pages) page++;
-
+					printf("%d", page);
 					break;
 				case SDL_QUIT:
 					exit = 1;
