@@ -19,6 +19,7 @@ extern "C" {
 #define MENU_HEIGHT		400
 #define FPS				60	//standard value of frames per sec
 #define MAX_GAME_SIZE	8
+#define ONPAGE			10 // amount of items on page
 
 
 
@@ -198,20 +199,6 @@ void saveGame(int field[][MAX_GAME_SIZE], int *gamesize, int *points, int *seed)
 	else printf("SAVING ERROR!!");
 }
 
-void LoadGame(int field[][MAX_GAME_SIZE], int *gamesize, int *points, int *seed, char *loadname) {
-	FILE *loadfile;
-
-	loadfile = fopen(loadname, "rb");
-	if (loadfile != NULL) {
-		for (int i = 0; i < MAX_GAME_SIZE; i++) {
-			fread(field[i], sizeof(int), MAX_GAME_SIZE, loadfile);
-		}
-		fread(gamesize, sizeof(int), 1, loadfile);
-		fread(points, sizeof(int), 1, loadfile);
-		fread(seed, sizeof(int), 1, loadfile);
-	}
-	else printf("LOADING ERROR!!");
-}
 
 
 int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov[][MAX_GAME_SIZE], int *points) {
@@ -358,6 +345,25 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 	return moving;
 }
 
+//void LoadGame(char *loadname, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
+//	FILE *loadfile;
+//	int gamesize = 0,
+//		points,
+//		seed;
+//	int field[MAX_GAME_SIZE][MAX_GAME_SIZE];
+//	loadfile = fopen(loadname, "rb");
+//	if (loadfile != NULL) {
+//		for (int i = 0; i < MAX_GAME_SIZE; i++) {
+//			fread(field[i], sizeof(int), MAX_GAME_SIZE, loadfile);
+//		}
+//		fread(&gamesize, sizeof(int), 1, loadfile);
+//		fread(&points, sizeof(int), 1, loadfile);
+//		fread(&seed, sizeof(int), 1, loadfile);
+//		Game(field, gamesize, seed, screen, scrtex, renderer, charset);
+//	}
+//	else printf("LOADING ERROR!!");
+//}
+
 int checkPossibility(int field[][MAX_GAME_SIZE], int gamesize) {
 	for (int i = 0; i < gamesize; i++) {
 		for (int j = 0; j < gamesize; j++) {
@@ -383,7 +389,7 @@ saves_list_t *LoadSaves(int *pages) {
 	if (savelistfile != NULL) {
 		fseek(savelistfile, 0, SEEK_END);
 		int size = ftell(savelistfile);
-		*pages = ceil((double)size / 32 / 8);
+		*pages = ceil((double)size / 32 / ONPAGE);
 		printf("%d", size);
 		fseek(savelistfile, 0, SEEK_SET);
 		list = (saves_list_t*)malloc(sizeof(saves_list_t));
@@ -402,7 +408,7 @@ saves_list_t *LoadSaves(int *pages) {
 				cur = cur->next;
 			}
 		}
-
+		fclose(savelistfile);
 		return list;
 
 	}
@@ -612,6 +618,27 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, SDL_Surface *scree
 	FreeAllSurfaces(&gamesurfaces);
 }
 
+void LoadGame(char *loadname, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
+	FILE *loadfile;
+	int gamesize = 0,
+		points,
+		seed;
+	int field[MAX_GAME_SIZE][MAX_GAME_SIZE];
+	char path[32];
+	sprintf(path, "saves/%s", loadname);
+	loadfile = fopen(path, "rb");
+	if (loadfile != NULL) {
+		for (int i = 0; i < MAX_GAME_SIZE; i++) {
+			fread(field[i], sizeof(int), MAX_GAME_SIZE, loadfile);
+		}
+		fread(&gamesize, sizeof(int), 1, loadfile);
+		fread(&points, sizeof(int), 1, loadfile);
+		fread(&seed, sizeof(int), 1, loadfile);
+		Game(field, gamesize, seed, screen, scrtex, renderer, charset);
+		fclose(loadfile);
+	}
+	else printf("LOADING ERROR!!");
+}
 
 void NewGame(int gamesize, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
 	int field[MAX_GAME_SIZE][MAX_GAME_SIZE];
@@ -632,7 +659,6 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 	SDL_Event event;
 	memset(&loadsurfaces, 0, sizeof(Surf_list));
 	int page = 1;
-	int onpage = 8;
 	int pages = 0;
 
 	list = LoadSaves(&pages);
@@ -641,6 +667,7 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 	InsertSurf(&loadsurfaces, gamefield);
 	int bialy = SDL_MapRGB(screen->format, 0xFF, 0xFF, 0xFF);
 	int exit = 0;
+	int chosenum = 0;
 	SDL_FillRect(gamefield, NULL, bialy);
 
 	if (list != NULL) {
@@ -648,25 +675,28 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 			int k = 1;
 			char num[12];
 			char name[32];
+			char txt[32];
 
 			SDL_FillRect(gamefield, NULL, bialy);
 
 			if (page == 1) {
 				sprintf(num, "%d", k);
-				DrawString(gamefield, 10, 16 * k, num, charset, 12);
+				DrawString(gamefield, 10, 24 * k, num, charset, 16);
 				DrawString(gamefield, gamefield->w / 4, 24 * k, list->savename, charset, 16);
 			}
 			k++;
 			cur = list;
 			while (cur->next != NULL && cur->next->savename != NULL) {
 				cur = cur->next;
-				if (k > (page - 1)*onpage && k <= page * onpage) {
+				if (k > (page - 1)*ONPAGE && k <= page * ONPAGE) {
 					sprintf(num, "%d", k);
-					DrawString(gamefield, 10, 24 * (k - (page - 1)*onpage), num, charset, 16);
-					DrawString(gamefield, gamefield->w / 4, 24 * (k - (page - 1)*onpage), cur->savename, charset, 16);
+					DrawString(gamefield, 10, 24 * (k - (page - 1)*ONPAGE), num, charset, 16);
+					DrawString(gamefield, gamefield->w / 4, 24 * (k - (page - 1)*ONPAGE), cur->savename, charset, 16);
 				}
 				k++;
 			}
+			sprintf(txt, "LOAD SAVE NR:%d", chosenum);
+			DrawString(gamefield, 10, gamefield->h / 4 * 3, txt, charset, 16);
 
 
 			DrawSurface(screen, gamefield, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 24);
@@ -680,7 +710,28 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 					if (event.key.keysym.sym == SDLK_ESCAPE) exit = 1;
 					else if (event.key.keysym.sym == SDLK_LEFT && page > 1) page--;
 					else if (event.key.keysym.sym == SDLK_RIGHT && page < pages) page++;
-					printf("%d", page);
+					else if (event.key.keysym.sym >= SDLK_0 && event.key.keysym.sym <= SDLK_9 && chosenum <= 99999999) {
+						chosenum *= 10;
+						chosenum += event.key.keysym.sym - 48;
+						printf("%d", event.key.keysym.sym - 48);
+					}
+					else if (event.key.keysym.sym == SDLK_BACKSPACE) {
+						chosenum -= chosenum % 10;
+						chosenum /= 10;
+					}
+					else if (event.key.keysym.sym == SDLK_RETURN) {
+						printf("%d\n", k);
+						if (chosenum < k) {
+							printf("HELLO");
+							int l = 1;
+							cur = list;
+							while (l != chosenum) {
+								l++;
+								cur = cur->next;
+							}
+							LoadGame(cur->savename, screen, scrtex, renderer, charset);
+						}
+					}
 					break;
 				case SDL_QUIT:
 					exit = 1;
@@ -1044,11 +1095,12 @@ int main(int argc, char **argv) {
 				if (event.button.button == SDL_BUTTON_LEFT) {
 					if (mouseX >= SCREEN_WIDTH / 2 - newgame->w / 2 && mouseX <= SCREEN_WIDTH / 2 + newgame->w / 2) {
 						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 270 - newgame->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 270 + newgame->h / 2)) {
-							printf("NEW GAME !!");
+							printf("NEW GAME !!\n");
 							NewGame(gamesize, screen, scrtex, renderer, charset);
 						}
 						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 320 - loadgame->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 320 + loadgame->h / 2)) {
-							printf("LOAD GAME");
+							printf("SHOWING SAVED GAMES\n");
+							ShowSavedGames(screen, scrtex, renderer, charset);
 						}
 					}
 					if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 230 - left->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 230 + left->h / 2)) {
