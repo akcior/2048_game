@@ -419,14 +419,13 @@ saves_list_t *LoadSaves(int *pages) {
 }
 
 
-void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
+void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
 	SDL_Event event;
 	SDL_Surface *gamefield, *gamefieldbmptmpl, *gamefieldbmp, *tilescolor, *tile, *emptile, *numbers, *number, *tilenumber, *endgame;
 	Surf_list gamesurfaces;
 	SDL_Rect cutile, cunumber, cunumbers, cufield;
 	memset(&gamesurfaces, 0, sizeof(Surf_list));
-	int escape = 0,
-		points = 0;
+	int escape = 0;
 	double t1 = 0,
 		t2 = 0,
 		delta = 0,
@@ -498,7 +497,6 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, SDL_Surface *scree
 	cufield.x = (gamefieldbmp->w / (10 * gamesize)) / 2;
 	cufield.y = (gamefieldbmp->w / (10 * gamesize)) / 2;
 
-	field[3][3] = 1048576;
 	while (escape != 1) {
 		t2 = SDL_GetTicks();
 		delta = (t2 - t1)*0.001;
@@ -634,7 +632,7 @@ void LoadGame(char *loadname, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Rend
 		fread(&gamesize, sizeof(int), 1, loadfile);
 		fread(&points, sizeof(int), 1, loadfile);
 		fread(&seed, sizeof(int), 1, loadfile);
-		Game(field, gamesize, seed, screen, scrtex, renderer, charset);
+		Game(field, gamesize, seed, points, screen, scrtex, renderer, charset);
 		fclose(loadfile);
 	}
 	else printf("LOADING ERROR!!");
@@ -647,25 +645,27 @@ void NewGame(int gamesize, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Rendere
 	int seed = rand();
 	GetRandomTile(field, &seed, gamesize);
 	GetRandomTile(field, &seed, gamesize);
-	Game(field, gamesize, seed, screen, scrtex, renderer, charset);
+	Game(field, gamesize, seed, 0, screen, scrtex, renderer, charset);
 
 };
 
-void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
+void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset, SDL_Surface *left, SDL_Surface *right) {
 	SDL_Surface *gamefield;
 	Surf_list loadsurfaces;
 	saves_list_t *list;
 	saves_list_t * cur;
 	SDL_Event event;
 	memset(&loadsurfaces, 0, sizeof(Surf_list));
-	int page = 1;
-	int pages = 0;
+	int page = 1,
+		pages = 0,
+		mouseX = 0,
+		mouseY = 0;
 
 	list = LoadSaves(&pages);
 
 	gamefield = SDL_CreateRGBSurface(0, FIELD_WIDTH, FIELD_HEIGHT, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 	InsertSurf(&loadsurfaces, gamefield);
-	int bialy = SDL_MapRGB(screen->format, 0xFF, 0xFF, 0xFF);
+	int bialy = SDL_MapRGB(screen->format, 0x11, 0xFF, 0xFF);
 	int exit = 0;
 	int chosenum = 0;
 	SDL_FillRect(gamefield, NULL, bialy);
@@ -698,11 +698,18 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 			sprintf(txt, "LOAD SAVE NR:%d", chosenum);
 			DrawString(gamefield, 10, gamefield->h / 4 * 3, txt, charset, 16);
 
+			if (page < pages) {
+				DrawSurface(gamefield, right, gamefield->w - 32, gamefield->h - 32);
+			}
+			if (page > 1) {
+				DrawSurface(gamefield, left, 32, gamefield->h - 32);
+			}
 
 			DrawSurface(screen, gamefield, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 24);
 			SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
 			SDL_RenderCopy(renderer, scrtex, NULL, NULL);
 			SDL_RenderPresent(renderer);
+
 
 			while (SDL_PollEvent(&event)) {
 				switch (event.type) {
@@ -713,16 +720,13 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 					else if (event.key.keysym.sym >= SDLK_0 && event.key.keysym.sym <= SDLK_9 && chosenum <= 99999999) {
 						chosenum *= 10;
 						chosenum += event.key.keysym.sym - 48;
-						printf("%d", event.key.keysym.sym - 48);
 					}
 					else if (event.key.keysym.sym == SDLK_BACKSPACE) {
 						chosenum -= chosenum % 10;
 						chosenum /= 10;
 					}
 					else if (event.key.keysym.sym == SDLK_RETURN) {
-						printf("%d\n", k);
 						if (chosenum < k) {
-							printf("HELLO");
 							int l = 1;
 							cur = list;
 							while (l != chosenum) {
@@ -730,12 +734,28 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 								cur = cur->next;
 							}
 							LoadGame(cur->savename, screen, scrtex, renderer, charset);
+							return;
 						}
 					}
 					break;
 				case SDL_QUIT:
 					exit = 1;
 					break;
+				case SDL_MOUSEMOTION:
+					mouseX = event.motion.x;
+					mouseY = event.motion.y;
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if (event.button.button == SDL_BUTTON_LEFT) {
+						if (mouseY >= (SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + gamefield->h - 48 + 24 && mouseY <= (SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + gamefield->h -16 + 24) {
+							if (mouseX >= (SCREEN_WIDTH - SCREEN_HEIGHT) / 2 + 16 && mouseX <= (SCREEN_WIDTH - FIELD_WIDTH) / 2 + 48 && page > 1) {
+								page--;
+							}
+							if (mouseX >= (SCREEN_WIDTH - FIELD_HEIGHT) / 2 + gamefield->w - 48 && mouseX <= (SCREEN_WIDTH - FIELD_WIDTH) / 2 + gamefield->w - 16 && page < pages) {
+								page++;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -1079,7 +1099,7 @@ int main(int argc, char **argv) {
 				else if (event.key.keysym.sym == SDLK_n) NewGame(gamesize, screen, scrtex, renderer, charset);
 				else if (event.key.keysym.sym == SDLK_LEFT && gamesize > 3) gamesize--;
 				else if (event.key.keysym.sym == SDLK_RIGHT && gamesize < 8) gamesize++;
-				else if (event.key.keysym.sym == SDLK_l) ShowSavedGames(screen, scrtex, renderer, charset);
+				else if (event.key.keysym.sym == SDLK_l) ShowSavedGames(screen, scrtex, renderer, charset,left,right);
 				break;
 			case SDL_KEYUP:
 				etiSpeed = 1.0;
@@ -1100,7 +1120,7 @@ int main(int argc, char **argv) {
 						}
 						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 320 - loadgame->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 320 + loadgame->h / 2)) {
 							printf("SHOWING SAVED GAMES\n");
-							ShowSavedGames(screen, scrtex, renderer, charset);
+							ShowSavedGames(screen, scrtex, renderer, charset,left,right);
 						}
 					}
 					if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 230 - left->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 230 + left->h / 2)) {
