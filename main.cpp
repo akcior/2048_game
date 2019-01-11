@@ -214,7 +214,7 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 					int l = j;
 					while (l - 1 >= 0 && field[i][l - 1] == 0) l--;
 
-					if (l > 0 && field[i][l - 1] == field[i][j] && mov[i][l - 1].lastinc == 0) {
+					if (l > 0 && field[i][l - 1] == field[i][j] && mov[i][l - 1].lastinc != 1) {
 						l--;
 						field[i][l] *= 2;
 						mov[i][l].lastinc = 1;
@@ -230,7 +230,12 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 						mov[i][l].m = 1;
 						mov[i][l].bx = j;
 						mov[i][l].by = i;
+						mov[i][l].lastinc = 0;//
 						moving = 1;
+					}
+					else {
+						mov[i][l].m = 0;
+						mov[i][l].lastinc = 0;
 					}
 				}
 			}
@@ -243,13 +248,7 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 				if (j < gamesize - 1 && k != 0) {
 					int l = j;
 					while (l + 1 < gamesize && field[i][l + 1] == 0)l++;
-					/*field[i][j] = 0;
-					field[i][l] = k;
-					mov[i][l].m = 1;
-					mov[i][l].bx = j;
-					mov[i][l].by = i;
-					moving = 1;*/
-					if (l < gamesize - 1 && field[i][l + 1] == field[i][j] && mov[i][l + 1].lastinc == 0) {
+					if (l < gamesize - 1 && field[i][l + 1] == field[i][j] && mov[i][l + 1].lastinc != 1) {
 						l++;
 						field[i][l] *= 2;
 						mov[i][l].lastinc = 1;
@@ -265,7 +264,12 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 						mov[i][l].m = 1;
 						mov[i][l].bx = j;
 						mov[i][l].by = i;
+						mov[i][l].lastinc = 0;//;
 						moving = 1;
+					}
+					else {
+						mov[i][l].m = 0;
+						mov[i][l].lastinc = 0;
 					}
 				}
 			}
@@ -278,13 +282,7 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 				if (j > 0 && k != 0) {
 					int l = j;
 					while (l - 1 >= 0 && field[l - 1][i] == 0) l--;
-					/*field[j][i] = 0;
-					field[l][i] = k;
-					mov[l][i].m = 1;
-					mov[l][i].bx = i;
-					mov[l][i].by = j;
-					moving = 1;*/
-					if (l > 0 && field[l - 1][i] == field[j][i] && mov[l - 1][i].lastinc == 0) {
+					if (l > 0 && field[l - 1][i] == field[j][i] && mov[l - 1][i].lastinc != 1) {
 						l--;
 						field[l][i] *= 2;
 						mov[l][i].lastinc = 1;
@@ -300,7 +298,12 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 						mov[l][i].m = 1;
 						mov[l][i].bx = i;
 						mov[l][i].by = j;
+						mov[l][i].lastinc = 0;//;
 						moving = 1;
+					}
+					else {
+						mov[l][i].m = 0;
+						mov[l][i].lastinc = 0;
 					}
 				}
 			}
@@ -313,13 +316,7 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 				if (j < gamesize - 1 && k != 0) {
 					int l = j;
 					while (l + 1 < gamesize && field[l + 1][i] == 0) l++;
-					/*	field[j][i] = 0;
-						field[l][i] = k;
-						mov[l][i].m = 1;
-						mov[l][i].bx = i;
-						mov[l][i].by = j;
-						moving = 1;*/
-					if (l < gamesize - 1 && field[l + 1][i] == field[j][i] && mov[l + 1][i].lastinc == 0) {
+					if (l < gamesize - 1 && field[l + 1][i] == field[j][i] && mov[l + 1][i].lastinc != 1) {
 						l++;
 						field[l][i] *= 2;
 						mov[l][i].lastinc = 1;
@@ -335,7 +332,12 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 						mov[l][i].m = 1;
 						mov[l][i].bx = i;
 						mov[l][i].by = j;
+						mov[l][i].lastinc = 0;
 						moving = 1;
+					}
+					else {
+						mov[l][i].m = 0;
+						mov[l][i].lastinc = 0;
 					}
 				}
 
@@ -345,24 +347,6 @@ int PushTiles(int field[][MAX_GAME_SIZE], int gamesize, int direction, mov_t mov
 	return moving;
 }
 
-//void LoadGame(char *loadname, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
-//	FILE *loadfile;
-//	int gamesize = 0,
-//		points,
-//		seed;
-//	int field[MAX_GAME_SIZE][MAX_GAME_SIZE];
-//	loadfile = fopen(loadname, "rb");
-//	if (loadfile != NULL) {
-//		for (int i = 0; i < MAX_GAME_SIZE; i++) {
-//			fread(field[i], sizeof(int), MAX_GAME_SIZE, loadfile);
-//		}
-//		fread(&gamesize, sizeof(int), 1, loadfile);
-//		fread(&points, sizeof(int), 1, loadfile);
-//		fread(&seed, sizeof(int), 1, loadfile);
-//		Game(field, gamesize, seed, screen, scrtex, renderer, charset);
-//	}
-//	else printf("LOADING ERROR!!");
-//}
 
 int checkPossibility(int field[][MAX_GAME_SIZE], int gamesize) {
 	for (int i = 0; i < gamesize; i++) {
@@ -418,6 +402,50 @@ saves_list_t *LoadSaves(int *pages) {
 	}
 }
 
+int stepBack(int field[][MAX_GAME_SIZE], int lastvalue[][MAX_GAME_SIZE], int *points,int lastpoints, mov_t mov[][MAX_GAME_SIZE], mov_t lastmov[][MAX_GAME_SIZE], int gamesize) {
+	//int lastvalue[MAX_GAME_SIZE][MAX_GAME_SIZE];
+	int moving = 0;
+	//memcpy(lastvalue, field, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+	memset(field, 0, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+	memset(mov, 0, sizeof(mov_t)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+	memcpy(field, lastvalue, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+	*points = lastpoints;
+
+	//for (int i = 0; i < gamesize; i++) {
+	//	for (int j = 0; j < gamesize; j++) {
+	//		if (lastmov[i][j].lastinc) {
+	//			field[lastmov[i][j].secy][lastmov[i][j].secx] = lastvalue[i][j] / 2;//
+	//			mov[lastmov[i][j].secx][lastmov[i][j].secy].m = 1;
+	//			mov[lastmov[i][j].secx][lastmov[i][j].secy].bx = j;
+	//			mov[lastmov[i][j].secx][lastmov[i][j].secy].by = i;
+
+	//			if (lastmov[i][j].m) {
+	//				field[lastmov[i][j].by][lastmov[i][j].bx] = lastvalue[i][j] / 2;//
+	//				mov[lastmov[i][j].bx][lastmov[i][j].by].m = 1;
+	//				mov[lastmov[i][j].bx][lastmov[i][j].by].bx = j;
+	//				mov[lastmov[i][j].bx][lastmov[i][j].by].by = i;
+	//			}
+	//			else field[i][j] = lastvalue[i][j] / 2;
+	//			moving = 1;
+
+
+	//		}
+	//		else if (lastmov[i][j].m) {
+	//			field[lastmov[i][j].by][lastmov[i][j].bx] = lastvalue[i][j];
+	//			mov[lastmov[i][j].bx][lastmov[i][j].by].m = 1;
+	//			mov[lastmov[i][j].bx][lastmov[i][j].by].bx = j;
+	//			mov[lastmov[i][j].bx][lastmov[i][j].by].by = i;
+	//			moving = 1;
+	//		}
+	//		else {
+	//			mov[lastmov[i][j].bx][lastmov[i][j].by].m = 0;
+	//			mov[lastmov[i][j].bx][lastmov[i][j].by].lastinc = 0;
+	//			field[i][j] = lastvalue[i][j];
+	//		}
+	//	}
+	//}
+	return moving;
+}
 
 void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
 	SDL_Event event;
@@ -425,7 +453,12 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 	Surf_list gamesurfaces;
 	SDL_Rect cutile, cunumber, cunumbers, cufield;
 	memset(&gamesurfaces, 0, sizeof(Surf_list));
-	int escape = 0;
+	int escape = 0,
+		back = 1,
+		lastvalue[MAX_GAME_SIZE][MAX_GAME_SIZE],
+		lastlastvalue[MAX_GAME_SIZE][MAX_GAME_SIZE],
+		lastpoints = 0,
+		lastlastpoints = 0;
 	double t1 = 0,
 		t2 = 0,
 		delta = 0,
@@ -435,6 +468,7 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 		moving = 0,
 		endbuff = 0;
 	mov_t mov[MAX_GAME_SIZE][MAX_GAME_SIZE];
+	mov_t lastmov[MAX_GAME_SIZE][MAX_GAME_SIZE];
 	memset(mov, 0, sizeof(mov_t)*MAX_GAME_SIZE*MAX_GAME_SIZE);
 
 	gamefieldbmptmpl = SDL_LoadBMP("./tlobig.bmp");
@@ -526,11 +560,12 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 			if (movduration >= animtime) {
 				movduration = 0;
 				moving = 0;
+				/*memcpy(lastmov, mov, sizeof(mov_t)*MAX_GAME_SIZE*MAX_GAME_SIZE);*/
+				/*memcpy(lastvalue, field, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);*/
 				memset(mov, 0, sizeof(mov_t)*MAX_GAME_SIZE*MAX_GAME_SIZE);
-				GetRandomTile(field, &seed, gamesize);
+				if(!back) GetRandomTile(field, &seed, gamesize);
 			}
 		}
-
 		char pointstring[32];
 		sprintf(pointstring, "POINTS:%d", points);
 		DrawString(screen, 20, 32, pointstring, charset, 16);
@@ -541,18 +576,18 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 					char num[32];
 					memset(num, 0, sizeof(num));
 					k = 1;
-					while ((field[i][j]) != pow(2, k))k++;
+					while ((field[i][j]) != pow(2, k)) k++; 
 					cutile.x = ((k - 1) % 8) * 120;
 					cutile.y = floor(k / 8) * 120;
 					SDL_BlitScaled(tilescolor, &cutile, tile, NULL);
-					if (mov[i][j].lastinc) sprintf(num, "%d", field[i][j] / 2);
+					if (mov[i][j].lastinc && moving) sprintf(num, "%d", field[i][j] / 2);
 					else sprintf(num, "%d", field[i][j]);
 					int size;
 					if (strlen(num) < 6) size = tile->w / 5;
 					else size = tile->w / strlen(num);
 					DrawString(tile, tile->w / 2 - strlen(num) * size / 2, tile->h / 2, num, charset, size); // draw value of tile
 
-					if (movduration < animtime && mov[i][j].lastinc) {
+					if (movduration < animtime && mov[i][j].lastinc == 1 && moving) {
 						double tilespeedx = (mov[i][j].secx - j) / animtime,
 							tilespeedy = (mov[i][j].secy - i) / animtime;
 						DrawSurface(gamefieldbmp, tile, ((gamefieldbmp->w / gamesize / 2)* (1 + mov[i][j].secx * 2)) - tilespeedx * movduration*(gamefieldbmp->w / gamesize), ((gamefieldbmp->h / gamesize / 2) * (1 + mov[i][j].secy * 2)) - tilespeedy * movduration*(gamefieldbmp->w / gamesize));
@@ -567,7 +602,7 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 							DrawSurface(gamefieldbmp, tile, ((gamefieldbmp->w / gamesize / 2)* (1 + mov[i][j].bx * 2)) - tilespeedx * movduration*(gamefieldbmp->w / gamesize), ((gamefieldbmp->h / gamesize / 2) * (1 + mov[i][j].by * 2)) - tilespeedy * movduration*(gamefieldbmp->w / gamesize));
 						}
 					}
-					else {
+					/*else {
 						mov[i][j].m = 0;
 						mov[i][j].bx = 0;
 						mov[i][j].by = 0;
@@ -575,7 +610,7 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 						mov[i][j].lastinc = 0;
 						mov[i][j].secx = 0;
 						mov[i][j].secy = 0;
-					}
+					}*/
 				}
 			}
 		}
@@ -603,11 +638,50 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 					}
 
 					if (event.key.keysym.sym == SDLK_ESCAPE) escape = 1;
-					else if (event.key.keysym.sym == SDLK_UP) moving = PushTiles(field, gamesize, 0, mov, &points);
-					else if (event.key.keysym.sym == SDLK_RIGHT) moving = PushTiles(field, gamesize, 1, mov, &points);
-					else if (event.key.keysym.sym == SDLK_DOWN) moving = PushTiles(field, gamesize, 2, mov, &points);
-					else if (event.key.keysym.sym == SDLK_LEFT) moving = PushTiles(field, gamesize, 3, mov, &points);
-					else if (event.key.keysym.sym == SDLK_s) saveGame(field, &gamesize, &points, &seed);
+					else if (event.key.keysym.sym == SDLK_UP) {
+						memcpy(lastlastvalue, field, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+						lastlastpoints = points;
+						moving = PushTiles(field, gamesize, 0, mov, &points);
+						if (moving) {
+							memcpy(lastvalue, lastlastvalue, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+							lastpoints = lastlastpoints;
+						}
+						back = 0;
+					}
+					else if (event.key.keysym.sym == SDLK_RIGHT) {
+						memcpy(lastlastvalue, field, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+						moving = PushTiles(field, gamesize, 1, mov, &points);
+						if (moving) {
+							memcpy(lastvalue, lastlastvalue, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+							lastpoints = lastlastpoints;
+						}
+						back = 0;
+					}
+					else if (event.key.keysym.sym == SDLK_DOWN) {
+						memcpy(lastlastvalue, field, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+						moving = PushTiles(field, gamesize, 2, mov, &points);
+						if (moving) {
+							memcpy(lastvalue, lastlastvalue, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+							lastpoints = lastlastpoints;
+						}
+						back = 0;
+					}
+					else if (event.key.keysym.sym == SDLK_LEFT) {
+						memcpy(lastlastvalue, field, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+						moving = PushTiles(field, gamesize, 3, mov, &points);
+						if (moving) {
+							memcpy(lastvalue, lastlastvalue, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
+							lastpoints = lastlastpoints;
+						}
+						back = 0;
+					}
+					else if (event.key.keysym.sym == SDLK_s) {
+						saveGame(field, &gamesize, &points, &seed);
+					}
+					else if (event.key.keysym.sym == SDLK_u && !back) {
+						stepBack(field, lastvalue, &points, lastpoints, mov, lastmov, gamesize);
+						back = 1;
+					}
 				}
 				break;
 			}
@@ -665,10 +739,11 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 
 	gamefield = SDL_CreateRGBSurface(0, FIELD_WIDTH, FIELD_HEIGHT, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 	InsertSurf(&loadsurfaces, gamefield);
-	int bialy = SDL_MapRGB(screen->format, 0x11, 0xFF, 0xFF);
+	int bialy = SDL_MapRGB(screen->format, 0xFF, 0xFF, 0xFF);
 	int exit = 0;
 	int chosenum = 0;
 	SDL_FillRect(gamefield, NULL, bialy);
+	SDL_FillRect(screen, NULL, bialy);
 
 	if (list != NULL) {
 		while (!exit) {
@@ -772,7 +847,7 @@ int main(int argc, char **argv) {
 	double delta, worldTime, fpsTimer, fps, distance, etiSpeed;
 	SDL_Event event;
 	SDL_Surface *screen, *charset;
-	SDL_Surface *eti, *gamefield = 0, *eti_final = 0, *tile = 0, *emptile = 0, *tilescolor = 0, *logo = 0, *menu = 0, *sizeslogo, *gamesizes = 0, *left = 0, *right = 0, *newgame = 0, *loadgame = 0, *curgamesize = 0;
+	SDL_Surface *eti, *gamefield = 0, *eti_final = 0, *tile = 0, *emptile = 0, *tilescolor = 0, *logo = 0, *menu = 0, *sizeslogo, *gamesizes = 0, *left = 0, *right = 0, *newgame = 0, *loadgame = 0, *curgamesize = 0, *scores = 0;
 	SDL_Texture *scrtex;
 	SDL_Window *window;
 	SDL_Renderer *renderer;
@@ -907,7 +982,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, logo);
 
-	menu = SDL_LoadBMP("./menu.bmp");
+	menu = SDL_LoadBMP("./menu1.bmp");
 	if (menu == NULL) {
 		printf("SDL_LoadBMP(menu.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -991,6 +1066,18 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, loadgame);
 
+	scores = SDL_LoadBMP("./scores.bmp");
+	if (scores == NULL) {
+		printf("SDL_LoadBMP(loadgame.bmp) error: %s\n", SDL_GetError());
+		FreeAllSurfaces(&surfaces);
+		SDL_DestroyTexture(scrtex);
+		SDL_DestroyWindow(window);
+		SDL_DestroyRenderer(renderer);
+		SDL_Quit();
+		return 1;
+	};
+	InsertSurf(&surfaces, scores);
+
 	char text[128];
 	int czarny = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
 	int zielony = SDL_MapRGB(screen->format, 0x00, 0xFF, 0x00);
@@ -1048,14 +1135,15 @@ int main(int argc, char **argv) {
 			SDL_FillRect(curgamesize, 0, bialy);
 			SDL_BlitSurface(gamesizes, &cutter, curgamesize, NULL);
 
-			DrawSurface(gamefield, logo, MENU_WIDTH / 2, 100);
-			DrawSurface(gamefield, menu, MENU_WIDTH / 2, 270);
-			DrawSurface(gamefield, sizeslogo, MENU_WIDTH / 2, 190);
-			DrawSurface(gamefield, curgamesize, MENU_WIDTH / 2, 230);
-			DrawSurface(gamefield, left, MENU_WIDTH / 2 - 50, 230);
-			DrawSurface(gamefield, right, MENU_WIDTH / 2 + 50, 230);
-			DrawSurface(gamefield, newgame, MENU_WIDTH / 2, 270);
-			DrawSurface(gamefield, loadgame, MENU_WIDTH / 2, 320);
+			DrawSurface(gamefield, logo, MENU_WIDTH / 2, 80);
+			DrawSurface(gamefield, menu, MENU_WIDTH / 2, 260);
+			DrawSurface(gamefield, sizeslogo, MENU_WIDTH / 2, 170);
+			DrawSurface(gamefield, curgamesize, MENU_WIDTH / 2, 210);
+			DrawSurface(gamefield, left, MENU_WIDTH / 2 - 50, 210);
+			DrawSurface(gamefield, right, MENU_WIDTH / 2 + 50, 210);
+			DrawSurface(gamefield, newgame, MENU_WIDTH / 2, 250);
+			DrawSurface(gamefield, loadgame, MENU_WIDTH / 2, 300);
+			DrawSurface(gamefield, scores, MENU_WIDTH / 2, 350);
 			DrawSurface(screen, gamefield,
 				SCREEN_WIDTH / 2,
 				SCREEN_HEIGHT / 2);
@@ -1114,16 +1202,19 @@ int main(int argc, char **argv) {
 			case SDL_MOUSEBUTTONDOWN:
 				if (event.button.button == SDL_BUTTON_LEFT) {
 					if (mouseX >= SCREEN_WIDTH / 2 - newgame->w / 2 && mouseX <= SCREEN_WIDTH / 2 + newgame->w / 2) {
-						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 270 - newgame->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 270 + newgame->h / 2)) {
+						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 260 - newgame->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 260 + newgame->h / 2)) {
 							printf("NEW GAME !!\n");
 							NewGame(gamesize, screen, scrtex, renderer, charset);
 						}
-						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 320 - loadgame->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 320 + loadgame->h / 2)) {
+						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 310 - loadgame->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 310 + loadgame->h / 2)) {
 							printf("SHOWING SAVED GAMES\n");
 							ShowSavedGames(screen, scrtex, renderer, charset,left,right);
 						}
+						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 360 - scores->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 360 + scores->h / 2)) {
+							printf("SHOWING SAVED SCORES\n");
+						}
 					}
-					if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 230 - left->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 230 + left->h / 2)) {
+					if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 220 - left->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 220 + left->h / 2)) {
 						if (mouseX >= SCREEN_WIDTH / 2 - 50 - left->w / 2 && mouseX <= SCREEN_WIDTH / 2 - 50 + left->w / 2 && gamesize > 3) gamesize--;
 						else if (mouseX >= SCREEN_WIDTH / 2 + 50 - right->w / 2 && mouseX <= SCREEN_WIDTH / 2 + 50 + right->w / 2 && gamesize < 8) gamesize++;
 					}
