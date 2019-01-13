@@ -486,7 +486,12 @@ void GetScoreName(int points, double gametime, int gamesize,SDL_Surface *screen,
 	int size = 17,
 		scorelen = 0;
 
+	double fpsMaxTime = 1000 / FPS,
+		fpsTimer = 0,
+		t2;
+
 	while (!exit) {
+		t2 = SDL_GetTicks();
 		SDL_FillRect(scorefield, &clrect, bialy);
 
 		DrawString(scorefield, scorefield->w / 2 - 6 * 15, 20, "SAVING SCORE", charset, 15);
@@ -540,6 +545,10 @@ void GetScoreName(int points, double gametime, int gamesize,SDL_Surface *screen,
 				}
 				break;
 			}
+		}
+		fpsTimer = SDL_GetTicks() - t2;
+		if (fpsMaxTime > fpsTimer) {
+			SDL_Delay(fpsMaxTime - fpsTimer);
 		}
 	}
 	FreeAllSurfaces(&scoresurfaces);
@@ -655,6 +664,10 @@ int Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, double 
 	cufield.w = gamefieldbmp->w - (gamefieldbmp->w / (10 * gamesize));
 	cufield.x = (gamefieldbmp->w / (10 * gamesize)) / 2;
 	cufield.y = (gamefieldbmp->w / (10 * gamesize)) / 2;
+
+	double fpsMaxTime = 1000 / FPS,
+		fpsTimer = 0;
+
 	while (!exit) {
 		t2 = SDL_GetTicks();
 		delta = (t2 - t1)*0.001;
@@ -866,6 +879,10 @@ int Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, double 
 				break;
 			}
 		}
+		fpsTimer = SDL_GetTicks() - t2;
+		if (fpsMaxTime > fpsTimer) {
+			SDL_Delay(fpsMaxTime - fpsTimer);
+		}
 	}
 	FreeAllSurfaces(&gamesurfaces);
 	return repeat;
@@ -1069,7 +1086,14 @@ void ShowScores(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer
 		bypoints = SortByPoints(list);
 		bytime = SortByTime(list);
 		sorted = bypoints;
+
+		double fpsMaxTime = 1000 / FPS,
+			fpsTimer = 0,
+			t2;
+
 		while (!exit) {
+
+			t2 = SDL_GetTicks();
 			k = 1;
 			SDL_FillRect(gamefield, NULL, bialy);
 			DrawString(gamefield, 10, (size + 5), "NR", charset, size);
@@ -1151,6 +1175,10 @@ void ShowScores(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer
 					}
 				}
 			}
+			fpsTimer = SDL_GetTicks() - t2;
+			if (fpsMaxTime > fpsTimer) {
+				SDL_Delay(fpsMaxTime - fpsTimer);
+			}
 		}
 		FreeAllSurfaces(&scoresurfaces);
 		FreeScoreList(list);
@@ -1184,7 +1212,14 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 	DrawSurface(screen, backbmp, SCREEN_WIDTH - 32, 32);
 
 	if (list != NULL) {
+
+		double fpsMaxTime = 1000 / FPS,
+			fpsTimer = 0,
+			t2;
+
 		while (!exit) {
+			t2 = SDL_GetTicks();
+
 			int k = 1;
 			char num[12];
 			char name[32];
@@ -1278,6 +1313,10 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 				}
 			}
 		}
+		fpsTimer = SDL_GetTicks() - t2;
+		if (fpsMaxTime > fpsTimer) {
+			SDL_Delay(fpsMaxTime - fpsTimer);
+		}
 	}
 	FreeAllSurfaces(&loadsurfaces);
 	FreeSaveList(list);
@@ -1288,8 +1327,8 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 extern "C"
 #endif
 int main(int argc, char **argv) {
-	int t1, t2, quit, frames, rc, gamesize = 3;
-	double delta, worldTime, fpsTimer, fps, distance, etiSpeed;
+	int t1, t2, quit, rc, gamesize = 3;
+	double delta, worldTime, distance, etiSpeed;
 	SDL_Event event;
 	SDL_Surface *screen, *charset;
 	SDL_Surface *eti, *gamefield = 0, *eti_final = 0, *tile = 0, *emptile = 0, *tilescolor = 0, *logo = 0, *menu = 0, *sizeslogo, *gamesizes = 0, *left = 0, *right = 0, *newgame = 0, *loadgame = 0, *curgamesize = 0, *scores = 0, *backbmp = 0;
@@ -1545,9 +1584,9 @@ int main(int argc, char **argv) {
 
 	t1 = SDL_GetTicks();
 
-	frames = 0;
-	fpsTimer = 0;
-	fps = 0;
+	double fpsMaxTime = 1000 / FPS,
+		fpsTimer = 0;
+
 	quit = 0;
 	worldTime = 0;
 	distance = 0;
@@ -1555,7 +1594,7 @@ int main(int argc, char **argv) {
 	SDL_BlitScaled(emptile, NULL, tile, NULL);
 
 	int mouseX = 0, mouseY = 0;
-	time_t timer;
+	//time_t timer;
 	while (!quit) {
 		t2 = SDL_GetTicks();
 
@@ -1571,7 +1610,6 @@ int main(int argc, char **argv) {
 		worldTime += delta;
 
 		distance += etiSpeed * delta;
-		if (worldTime *FPS >= 1) {
 
 			SDL_FillRect(screen, NULL, bialy);
 			cutter.x = 0;
@@ -1594,15 +1632,6 @@ int main(int argc, char **argv) {
 				SCREEN_WIDTH / 2,
 				SCREEN_HEIGHT / 2);
 
-			worldTime = 0;
-		}
-		fpsTimer += delta;
-		if (fpsTimer > 0.5) {
-			fps = frames * 2;
-			frames = 0;
-			fpsTimer -= 0.5;
-			timer = time(NULL);
-		};
 
 		//// tekst informacyjny / info text
 		//DrawRectangle(screen, 2, 2, SCREEN_WIDTH - 8, 36, czerwony, niebieski);
@@ -1668,7 +1697,11 @@ int main(int argc, char **argv) {
 				}
 			};
 		};
-		frames++;
+
+		fpsTimer = SDL_GetTicks() - t2;
+		if (fpsMaxTime > fpsTimer) {
+			SDL_Delay(fpsMaxTime - fpsTimer);
+		}
 	}
 	FreeAllSurfaces(&surfaces);
 	SDL_DestroyTexture(scrtex);
