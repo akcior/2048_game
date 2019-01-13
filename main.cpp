@@ -459,13 +459,13 @@ void GetScoreName(int points, double gametime, int gamesize,SDL_Surface *screen,
 		mouseY = 0;
 
 
-	scorefield = SDL_LoadBMP("./menu1.bmp");
+	scorefield = SDL_LoadBMP("bitmaps/menu.bmp");
 	if (scorefield == NULL) {
 		return;
 	}
 	InsertSurf(&scoresurfaces, scorefield);
 
-	savebmp = SDL_LoadBMP("./save.bmp");
+	savebmp = SDL_LoadBMP("bitmaps/save.bmp");
 	if (savebmp == NULL) {
 		FreeAllSurfaces(&scoresurfaces);
 		return;
@@ -584,7 +584,7 @@ int Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, double 
 	mov_t lastmov[MAX_GAME_SIZE][MAX_GAME_SIZE];
 	memset(mov, 0, sizeof(mov_t)*MAX_GAME_SIZE*MAX_GAME_SIZE);
 
-	gamefieldbmptmpl = SDL_LoadBMP("./tlobig.bmp");
+	gamefieldbmptmpl = SDL_LoadBMP("bitmaps/tlobig.bmp");
 	if (gamefieldbmptmpl == NULL) {
 		FreeAllSurfaces(&gamesurfaces);
 		return 0;
@@ -592,42 +592,42 @@ int Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, double 
 	InsertSurf(&gamesurfaces, gamefieldbmptmpl);
 
 
-	tilescolor = SDL_LoadBMP("./tilescolor1.bmp");
+	tilescolor = SDL_LoadBMP("bitmaps/tilescolor.bmp");
 	if (tilescolor == NULL) {
 		FreeAllSurfaces(&gamesurfaces);
 		return 0;
 	}
 	InsertSurf(&gamesurfaces, tilescolor);
 
-	emptile = SDL_LoadBMP("./emptile.bmp");
+	emptile = SDL_LoadBMP("bitmaps/emptile.bmp");
 	if (emptile == NULL) {
 		FreeAllSurfaces(&gamesurfaces);
 		return 0;
 	}
 	InsertSurf(&gamesurfaces, emptile);
 
-	numbers = SDL_LoadBMP("./numbers.bmp");
+	numbers = SDL_LoadBMP("bitmaps/numbers.bmp");
 	if (numbers == NULL) {
 		FreeAllSurfaces(&gamesurfaces);
 		return 0;
 	}
 	InsertSurf(&gamesurfaces, numbers);
 
-	backbmp = SDL_LoadBMP("./back.bmp");
+	backbmp = SDL_LoadBMP("bitmaps/back.bmp");
 	if (backbmp == NULL) {
 		FreeAllSurfaces(&gamesurfaces);
 		return 0;
 	}
 	InsertSurf(&gamesurfaces, backbmp);
 
-	savebmp = SDL_LoadBMP("./save.bmp");
+	savebmp = SDL_LoadBMP("bitmaps/save.bmp");
 	if (savebmp == NULL) {
 		FreeAllSurfaces(&gamesurfaces);
 		return 0;
 	}
 	InsertSurf(&gamesurfaces, savebmp);
 
-	newgame = SDL_LoadBMP("./newgame.bmp");
+	newgame = SDL_LoadBMP("bitmaps/newgame.bmp");
 	if (newgame == NULL) {
 		FreeAllSurfaces(&gamesurfaces);
 		return 0;
@@ -1389,7 +1389,7 @@ int main(int argc, char **argv) {
 	SDL_ShowCursor(SDL_ENABLE);
 
 	// wczytanie obrazka cs8x8.bmp
-	charset = SDL_LoadBMP("./cs8x8.bmp");
+	charset = SDL_LoadBMP("bitmaps/cs8x8.bmp");
 	if (charset == NULL) {
 		printf("SDL_LoadBMP(cs8x8.bmp) error: %s\n", SDL_GetError());
 		//FreeSurfaces(screen, tile, gamesize);
@@ -1403,19 +1403,8 @@ int main(int argc, char **argv) {
 	SDL_SetColorKey(charset, true, 0xFFFFFF);
 	InsertSurf(&surfaces, charset);
 
-	eti = SDL_LoadBMP("./eti.bmp");
-	if (eti == NULL) {
-		printf("SDL_LoadBMP(eti.bmp) error: %s\n", SDL_GetError());
-		FreeAllSurfaces(&surfaces);
-		SDL_DestroyTexture(scrtex);
-		SDL_DestroyWindow(window);
-		SDL_DestroyRenderer(renderer);
-		SDL_Quit();
-		return 1;
-	};
-	InsertSurf(&surfaces, eti);
 
-	gamefield = SDL_LoadBMP("./tlo1.bmp");
+	gamefield = SDL_LoadBMP("bitmaps/tlo.bmp");
 	if (gamefield == NULL) {
 		printf("SDL_LoadBMP(tlo.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1427,31 +1416,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, gamefield);
 
-	emptile = SDL_LoadBMP("./emptile1.bmp");
-	if (emptile == NULL) {
-		printf("SDL_LoadBMP(emptile1.bmp) error: %s\n", SDL_GetError());
-		FreeAllSurfaces(&surfaces);
-		SDL_DestroyTexture(scrtex);
-		SDL_DestroyWindow(window);
-		SDL_DestroyRenderer(renderer);
-		SDL_Quit();
-		return 1;
-	};
-	InsertSurf(&surfaces, emptile);
-
-	tilescolor = SDL_LoadBMP("./tilescolor.bmp");
-	if (tilescolor == NULL) {
-		printf("SDL_LoadBMP(emptile1.bmp) error: %s\n", SDL_GetError());
-		FreeAllSurfaces(&surfaces);
-		SDL_DestroyTexture(scrtex);
-		SDL_DestroyWindow(window);
-		SDL_DestroyRenderer(renderer);
-		SDL_Quit();
-		return 1;
-	};
-	InsertSurf(&surfaces, tilescolor);
-
-	logo = SDL_LoadBMP("./logo.bmp");
+	logo = SDL_LoadBMP("bitmaps/logo.bmp");
 	if (logo == NULL) {
 		printf("SDL_LoadBMP(logo.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1463,7 +1428,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, logo);
 
-	menu = SDL_LoadBMP("./menu1.bmp");
+	menu = SDL_LoadBMP("bitmaps/menu.bmp");
 	if (menu == NULL) {
 		printf("SDL_LoadBMP(menu.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1475,7 +1440,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, menu);
 
-	sizeslogo = SDL_LoadBMP("./sizeslogo.bmp");
+	sizeslogo = SDL_LoadBMP("bitmaps/sizeslogo.bmp");
 	if (sizeslogo == NULL) {
 		printf("SDL_LoadBMP(sizeslogo.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1487,7 +1452,7 @@ int main(int argc, char **argv) {
 	}
 	InsertSurf(&surfaces, sizeslogo);
 
-	gamesizes = SDL_LoadBMP("./gamesizes.bmp");
+	gamesizes = SDL_LoadBMP("bitmaps/gamesizes.bmp");
 	if (gamesizes == NULL) {
 		printf("SDL_LoadBMP(gamesizes.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1499,7 +1464,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, gamesizes);
 
-	right = SDL_LoadBMP("./right.bmp");
+	right = SDL_LoadBMP("bitmaps/right.bmp");
 	if (right == NULL) {
 		printf("SDL_LoadBMP(right.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1511,7 +1476,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, right);
 
-	left = SDL_LoadBMP("./left.bmp");
+	left = SDL_LoadBMP("bitmaps/left.bmp");
 	if (left == NULL) {
 		printf("SDL_LoadBMP(left.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1523,7 +1488,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, left);
 
-	newgame = SDL_LoadBMP("./newgame.bmp");
+	newgame = SDL_LoadBMP("bitmaps/newgame.bmp");
 	if (newgame == NULL) {
 		printf("SDL_LoadBMP(newgame.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1535,7 +1500,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, newgame);
 
-	loadgame = SDL_LoadBMP("./loadgame.bmp");
+	loadgame = SDL_LoadBMP("bitmaps/loadgame.bmp");
 	if (loadgame == NULL) {
 		printf("SDL_LoadBMP(loadgame.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1547,7 +1512,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, loadgame);
 
-	scores = SDL_LoadBMP("./scores.bmp");
+	scores = SDL_LoadBMP("bitmaps/scores.bmp");
 	if (scores == NULL) {
 		printf("SDL_LoadBMP(scores.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1559,7 +1524,7 @@ int main(int argc, char **argv) {
 	};
 	InsertSurf(&surfaces, scores);
 
-	backbmp = SDL_LoadBMP("./back.bmp");
+	backbmp = SDL_LoadBMP("bitmaps/back.bmp");
 	if (backbmp == NULL) {
 		printf("SDL_LoadBMP(back.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
@@ -1591,7 +1556,6 @@ int main(int argc, char **argv) {
 	worldTime = 0;
 	distance = 0;
 	etiSpeed = 1;
-	SDL_BlitScaled(emptile, NULL, tile, NULL);
 
 	int mouseX = 0, mouseY = 0;
 	//time_t timer;
