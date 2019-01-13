@@ -20,7 +20,7 @@ extern "C" {
 #define FPS				60	//standard value of frames per sec
 #define MAX_GAME_SIZE	8
 #define ONPAGE			7 // amount of items on page
-
+#pragma warning(disable:4996)
 
 
 struct Surf_list {
@@ -724,8 +724,8 @@ int Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, double 
 					memset(num, 0, sizeof(num));
 					k = 1;
 					while ((field[i][j]) != pow(2, k)) k++; 
-					cutile.x = ((k - 1) % 8) * 120;
-					cutile.y = floor(k / 8) * 120;
+					cutile.x = ((k - 1) % 8) * tilescolor->w / 8;
+					cutile.y = floor(k / 8) * tilescolor->h / 8;
 					SDL_BlitScaled(tilescolor, &cutile, tile, NULL);
 					if (mov[i][j].lastinc && moving) sprintf(num, "%d", field[i][j] / 2);
 					else sprintf(num, "%d", field[i][j]);
@@ -1370,7 +1370,7 @@ int main(int argc, char **argv) {
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
-	SDL_SetWindowTitle(window, "2048");
+	SDL_SetWindowTitle(window, "Jakub Lecki 175494");
 
 	curgamesize = SDL_CreateRGBSurface(0, 146, 36, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 	InsertSurf(&surfaces, curgamesize);
@@ -1672,5 +1672,6 @@ int main(int argc, char **argv) {
 	SDL_DestroyWindow(window);
 	SDL_DestroyRenderer(renderer);
 	SDL_Quit();
+	printf("BYE BYE");
 	return 1;
 }
