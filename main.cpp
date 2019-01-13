@@ -19,7 +19,7 @@ extern "C" {
 #define MENU_HEIGHT		400
 #define FPS				60	//standard value of frames per sec
 #define MAX_GAME_SIZE	8
-#define ONPAGE			10 // amount of items on page
+#define ONPAGE			7 // amount of items on page
 
 
 
@@ -40,6 +40,13 @@ struct mov_t {
 	int lastinc;
 	int secx;
 	int secy;
+};
+
+struct Score_list_t {
+	char name[32];
+	int points;
+	double gametime;
+	Score_list_t *next;
 };
 
 // narysowanie napisu txt na powierzchni screen, zaczynaj¹c od punktu (x, y)
@@ -153,6 +160,15 @@ void FreeAllSurfaces(Surf_list *head) {
 		if (cur->next != NULL) cur = cur->next;
 		else break;
 	}
+}
+
+void FreeScoreList(Score_list_t* list) {
+	if (list->next != NULL) FreeScoreList(list->next);
+	free(list);
+}
+void FreeSaveList(saves_list_t *list) {
+	if (list->next != NULL) FreeSaveList(list->next);
+	free(list);
 }
 
 void GetRandomTile(int field[][MAX_GAME_SIZE], int *seed, int gamesize) {
@@ -447,18 +463,112 @@ int stepBack(int field[][MAX_GAME_SIZE], int lastvalue[][MAX_GAME_SIZE], int *po
 	return moving;
 }
 
+void SaveScore(char scorename[],int points, double gametime){
+	FILE *scores;
+
+	scores = fopen("scores", "ab");
+	if (scores == NULL) {
+		printf("SAVING SCORES FAILURE");
+		return;
+	}
+	
+	fwrite(scorename, sizeof(char), 32, scores);
+	fwrite(&points, sizeof(int), 1, scores);
+	fwrite(&gametime, sizeof(double), 1, scores);
+
+	fclose(scores);
+}
+
+void GetScoreName(int points, double gametime, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
+	SDL_Surface *scorefield;
+	Surf_list scoresurfaces;
+	SDL_Event event;
+	SDL_Rect clrect;
+
+
+	memset(&scoresurfaces, 0, sizeof(Surf_list));
+
+	int exit = 0;
+
+
+	scorefield = SDL_LoadBMP("./menu1.bmp");//SDL_CreateRGBSurface(0, FIELD_WIDTH * 9 / 10, FIELD_HEIGHT/2, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	if (scorefield == NULL) {
+		return;
+	}
+	InsertSurf(&scoresurfaces, scorefield);
+
+	clrect.x = 15;
+	clrect.y = 15;
+	clrect.w = scorefield->w - 30;
+	clrect.h = scorefield->h - 30;
+
+	int bialy = SDL_MapRGB(screen->format, 0xFF, 0xFF, 0xFF);
+	char txt[32] = "ENTER YOUR NAME:",
+		scorename[32];
+	
+	memset(scorename, '\0', sizeof(char) * 32);
+
+	int size = 17,
+		scorelen = 0;
+
+	while (!exit) {
+		SDL_FillRect(scorefield, &clrect, bialy);
+
+		DrawString(scorefield, scorefield->w / 2 - 6 * 15, 20, "SAVING SCORE", charset, 15);
+		DrawString(scorefield, scorefield->w / 2 - strlen(txt) / 2 * size, scorefield->h / 4, txt, charset, size);
+		DrawString(scorefield, scorefield->w / 2 - strlen(scorename) / 2 * size, scorefield->h / 2, scorename, charset, size);
+		DrawSurface(screen, scorefield, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 24);
+		SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+		SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+		SDL_RenderPresent(renderer);
+
+		while (SDL_PollEvent(&event)) {
+			switch (event.type) {
+			case SDL_QUIT:
+				exit = 1;
+				break;
+			case SDL_KEYDOWN:
+				if (event.key.keysym.sym == SDLK_ESCAPE) {
+					exit = 1;
+				}
+				else if (event.key.keysym.sym >= SDLK_a && event.key.keysym.sym <= SDLK_z && scorelen < 9) {
+					scorename[scorelen] = event.key.keysym.sym - 32;
+					scorelen++;
+				}
+				else if (event.key.keysym.sym == SDLK_BACKSPACE && scorelen > 0) {
+					scorelen--;
+					scorename[scorelen] = '\0';
+				}
+				else if (event.key.keysym.sym == SDLK_RETURN) {
+					if (scorelen > 0) {
+						SaveScore(scorename,gametime,points);
+						exit = 1;
+					}
+				}
+				break;
+			}
+		}
+	}
+	FreeAllSurfaces(&scoresurfaces);
+}
+
 void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset) {
 	SDL_Event event;
-	SDL_Surface *gamefield, *gamefieldbmptmpl, *gamefieldbmp, *tilescolor, *tile, *emptile, *numbers, *number, *tilenumber, *endgame;
+	SDL_Surface *gamefield, *gamefieldbmptmpl, *gamefieldbmp, *tilescolor, *tile, *emptile, *numbers, *number, *tilenumber, *endgame, *backbmp;
 	Surf_list gamesurfaces;
 	SDL_Rect cutile, cunumber, cunumbers, cufield;
 	memset(&gamesurfaces, 0, sizeof(Surf_list));
-	int escape = 0,
+	int exit = 0,
+		endbuff = 0,
 		back = 1,
 		lastvalue[MAX_GAME_SIZE][MAX_GAME_SIZE],
 		lastlastvalue[MAX_GAME_SIZE][MAX_GAME_SIZE],
 		lastpoints = 0,
-		lastlastpoints = 0;
+		lastlastpoints = 0,
+		mouseX = 0,
+		mouseY = 0,
+		infosize = 0,
+		endsize = 0;
 	double t1 = 0,
 		t2 = 0,
 		delta = 0,
@@ -466,7 +576,7 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 		movduration = 0,
 		animtime = 0.3,
 		moving = 0,
-		endbuff = 0;
+		endgametime = 0;
 	mov_t mov[MAX_GAME_SIZE][MAX_GAME_SIZE];
 	mov_t lastmov[MAX_GAME_SIZE][MAX_GAME_SIZE];
 	memset(mov, 0, sizeof(mov_t)*MAX_GAME_SIZE*MAX_GAME_SIZE);
@@ -500,6 +610,13 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 	}
 	InsertSurf(&gamesurfaces, numbers);
 
+	backbmp = SDL_LoadBMP("./back.bmp");
+	if (backbmp == NULL) {
+		FreeAllSurfaces(&gamesurfaces);
+		return;
+	}
+	InsertSurf(&gamesurfaces, backbmp);
+
 	gamefieldbmp = SDL_CreateRGBSurface(0, 840, 840, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
 	InsertSurf(&gamesurfaces, gamefieldbmp);
 
@@ -530,8 +647,8 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 	cufield.w = gamefieldbmp->w - (gamefieldbmp->w / (10 * gamesize));
 	cufield.x = (gamefieldbmp->w / (10 * gamesize)) / 2;
 	cufield.y = (gamefieldbmp->w / (10 * gamesize)) / 2;
-
-	while (escape != 1) {
+	t1 = SDL_GetTicks();
+	while (!exit) {
 		t2 = SDL_GetTicks();
 		delta = (t2 - t1)*0.001;
 		t1 = t2;
@@ -540,6 +657,7 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 		int canMove = checkPossibility(field, gamesize);
 		if (!canMove) {
 			endbuff = 1;
+			endgametime = gametime;
 		}
 
 
@@ -560,15 +678,18 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 			if (movduration >= animtime) {
 				movduration = 0;
 				moving = 0;
-				/*memcpy(lastmov, mov, sizeof(mov_t)*MAX_GAME_SIZE*MAX_GAME_SIZE);*/
-				/*memcpy(lastvalue, field, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);*/
 				memset(mov, 0, sizeof(mov_t)*MAX_GAME_SIZE*MAX_GAME_SIZE);
 				if(!back) GetRandomTile(field, &seed, gamesize);
 			}
 		}
-		char pointstring[32];
-		sprintf(pointstring, "POINTS:%d", points);
-		DrawString(screen, 20, 32, pointstring, charset, 16);
+		char infostring[32];
+		infosize = 16;
+		sprintf(infostring, "POINTS:%d", points);
+		DrawString(screen, 20, 32, infostring, charset, infosize);
+		if(!endbuff)sprintf(infostring, "GAME TIME:%g", gametime);
+		else sprintf(infostring, "GAME TIME:%g", endgametime);
+		DrawString(screen, 190, 32, infostring, charset, infosize);
+		if(!back) DrawSurface(screen, backbmp, SCREEN_WIDTH - 32, 32);
 
 		for (int i = 0; i < gamesize; i++) {
 			for (int j = 0; j < gamesize; j++) {
@@ -602,26 +723,23 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 							DrawSurface(gamefieldbmp, tile, ((gamefieldbmp->w / gamesize / 2)* (1 + mov[i][j].bx * 2)) - tilespeedx * movduration*(gamefieldbmp->w / gamesize), ((gamefieldbmp->h / gamesize / 2) * (1 + mov[i][j].by * 2)) - tilespeedy * movduration*(gamefieldbmp->w / gamesize));
 						}
 					}
-					/*else {
-						mov[i][j].m = 0;
-						mov[i][j].bx = 0;
-						mov[i][j].by = 0;
-						if (mov[i][j].lastinc) field[i][j] *= 2;
-						mov[i][j].lastinc = 0;
-						mov[i][j].secx = 0;
-						mov[i][j].secy = 0;
-					}*/
 				}
 			}
 		}
 
+		endbuff = 1;
 
 		SDL_BlitScaled(gamefieldbmp, NULL, gamefield, NULL);
 		SDL_SetSurfaceAlphaMod(endgame, alpha);
 		if (endbuff) {
 			SDL_BlitSurface(endgame, NULL, gamefield, NULL);
 			char endstring[12] = "GAME OVER";
-			DrawString(gamefield, gamefield->w / 2 - strlen(endstring) * 40 / 2, gamefield->h / 2, endstring, charset, 40);
+			endsize = 40;
+			DrawString(gamefield, gamefield->w / 2 - strlen(endstring) * endsize / 2, gamefield->h / 2 -100, endstring, charset, endsize);
+			sprintf(endstring, "SAVE SCORE?");
+			DrawString(gamefield, gamefield->w / 2 - strlen(endstring) * (endsize - 5) / 2, gamefield->h / 2 + 5, endstring, charset, endsize -5);
+			DrawString(gamefield, gamefield->w / 2 - endsize / 2 - 60, gamefield->h / 2 + 60, "Y", charset, endsize);
+			DrawString(gamefield, gamefield->w / 2 - endsize / 2 + 60, gamefield->h / 2 + 60, "N", charset, endsize);
 		}
 
 		DrawSurface(screen, gamefield, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 24);
@@ -630,14 +748,46 @@ void Game(int field[][MAX_GAME_SIZE], int gamesize, int seed, int points, SDL_Su
 		SDL_RenderPresent(renderer);
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
+			case SDL_MOUSEMOTION:
+				mouseX = event.motion.x;
+				mouseY = event.motion.y;
+				break;
+			case SDL_MOUSEBUTTONDOWN:
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					if (mouseY >= 16 && mouseY <= 16 + backbmp->h && mouseX >= SCREEN_WIDTH - 48 && mouseX <= SCREEN_WIDTH - 16 && !back) {
+						stepBack(field, lastvalue, &points, lastpoints, mov, lastmov, gamesize);
+						back = 1;
+					}
+					if (endbuff) {
+						if (mouseY >= (SCREEN_HEIGHT - gamefield->h) / 2 + 24 + gamefield->h/2 + 60 - endsize / 2 && mouseY <= (SCREEN_HEIGHT - gamefield->h) / 2 + 24 + gamefield->h / 2 + 60 + endsize/2) {
+							if (mouseX >= (SCREEN_WIDTH - gamefield->w) / 2 + gamefield->w / 2 - endsize / 2 - 60 && mouseX <= (SCREEN_WIDTH - gamefield->w) / 2 + gamefield->w / 2 - endsize / 2 - 60 + endsize) {
+								printf("SAVING SCORE");
+								GetScoreName(points, endgametime, screen, scrtex, renderer, charset);
+								exit = 1;
+							}
+							else if (mouseX >= (SCREEN_WIDTH - gamefield->w) / 2 + gamefield->w / 2 - endsize / 2 + 60 && mouseX <= (SCREEN_WIDTH - gamefield->w) / 2 + gamefield->w / 2 - endsize / 2 + 60 + endsize) {
+								printf("END OF GAME");
+								exit = 1;
+							}
+						}
+					}
+				}
+				break;
 			case SDL_KEYDOWN:
 				if (!moving) {
 					if (endbuff == 1) {
-						printf("END OF GAME");
-						return;
+						if (event.key.keysym.sym == SDLK_n) {
+							printf("END OF GAME");
+							exit = 1;
+						}
+						if (event.key.keysym.sym == SDLK_y) {
+							printf("SAVING SCORE");
+							GetScoreName(points, endgametime, screen, scrtex, renderer, charset);
+							exit = 1;
+						}
 					}
 
-					if (event.key.keysym.sym == SDLK_ESCAPE) escape = 1;
+					if (event.key.keysym.sym == SDLK_ESCAPE) exit = 1;
 					else if (event.key.keysym.sym == SDLK_UP) {
 						memcpy(lastlastvalue, field, sizeof(int)*MAX_GAME_SIZE*MAX_GAME_SIZE);
 						lastlastpoints = points;
@@ -721,9 +871,247 @@ void NewGame(int gamesize, SDL_Surface *screen, SDL_Texture *scrtex, SDL_Rendere
 	GetRandomTile(field, &seed, gamesize);
 	Game(field, gamesize, seed, 0, screen, scrtex, renderer, charset);
 
-};
+}
 
-void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset, SDL_Surface *left, SDL_Surface *right) {
+void InsertAfter(Score_list_t *after, Score_list_t *insert) {
+	insert->next = after->next;
+	after->next = insert;
+}
+
+Score_list_t *InsertFirst(Score_list_t *list, Score_list_t *insert) {
+	insert->next = list;
+	return insert;
+}
+
+void RemoveAfter(Score_list_t *after) {
+	if (after->next != NULL) {
+		after->next = after->next->next;
+	}
+}
+
+Score_list_t *SortByTime(Score_list_t *list) {
+	Score_list_t *head;
+	Score_list_t *cur = list;
+	Score_list_t *check;
+	Score_list_t *iter;
+	Score_list_t *insert;
+	cur = list;
+	head = (Score_list_t*)malloc(sizeof(Score_list_t));
+	memset(head, 0, sizeof(Score_list_t));
+	memcpy(head, list, sizeof(Score_list_t));
+	head->next = NULL;
+
+	cur = list;
+	while (cur->next != NULL) {
+		cur = cur->next;
+		iter = head;
+		if (cur->gametime > 0) {
+			if ((int)ceil(cur->gametime) < (int)ceil(head->gametime)) {
+				insert = (Score_list_t*)malloc(sizeof(Score_list_t));
+				memcpy(insert, cur, sizeof(Score_list_t));
+				head = InsertFirst(head, insert);
+			}
+			else {
+				while ((int)ceil(cur->gametime) > (int)ceil(iter->gametime) && iter->next != NULL && (int)ceil(cur->gametime) > (int)ceil(iter->next->gametime)) iter = iter->next;
+				insert = (Score_list_t*)malloc(sizeof(Score_list_t));
+				memcpy(insert, cur, sizeof(Score_list_t));
+				InsertAfter(iter, insert);
+			}
+		}
+	}
+	return head;
+}
+
+Score_list_t *SortByPoints(Score_list_t *list) {
+	Score_list_t *head;
+	Score_list_t *cur = list;
+	Score_list_t *check;
+	Score_list_t *iter;
+	Score_list_t *insert;
+	cur = list;
+	head = (Score_list_t*)malloc(sizeof(Score_list_t));
+	memset(head, 0, sizeof(Score_list_t));
+	memcpy(head, list, sizeof(Score_list_t));
+	head->next = NULL;
+
+	cur = list;
+	while (cur->next != NULL) {
+		cur = cur->next;
+		iter = head;
+		if (cur->points > head->points) {
+			insert = (Score_list_t*)malloc(sizeof(Score_list_t));
+			memcpy(insert, cur, sizeof(Score_list_t));
+			head = InsertFirst(head, insert);
+		}
+		else {
+			while (cur->points < iter->points && iter->next != NULL && cur->points < iter->next->points) {
+				iter = iter->next;
+			}
+			insert = (Score_list_t*)malloc(sizeof(Score_list_t));
+			memcpy(insert, cur, sizeof(Score_list_t));
+			InsertAfter(iter, insert);
+		}
+	}
+	return head;
+}
+
+Score_list_t *LoadScores(int gamesize, int *pages) {
+	FILE * scores;
+	Score_list_t *list;
+	Score_list_t *cur;
+	int elem = 0;
+	char scoresname[12];
+	sprintf(scoresname, "scores%d",gamesize);
+	scores = fopen(scoresname, "rb");
+	if (scores == NULL) {
+		printf("SCORES LOADING FAILURE");
+		return 0;
+	}
+
+	if (!feof(scores)) list = (Score_list_t*)malloc(sizeof(Score_list_t));
+	else {
+		fclose(scores);
+		return 0;
+	}
+	memset(list, 0, sizeof(Score_list_t));
+	fread(list->name, sizeof(char), 32, scores);
+	fread(&list->points, sizeof(int), 1, scores);
+	fread(&list->gametime, sizeof(double), 1, scores);
+	elem++;
+
+	list->next = (Score_list_t*)malloc(sizeof(Score_list_t));
+	memset(list->next, 0, sizeof(Score_list_t));
+	cur = list->next;
+
+	while (!feof(scores)) {
+		fread(cur->name, sizeof(char), 32, scores);
+		fread(&cur->points, sizeof(int), 1, scores);
+		fread(&cur->gametime, sizeof(double), 1, scores);
+		cur->next = (Score_list_t*)malloc(sizeof(Score_list_t));
+		memset(cur->next, 0, sizeof(Score_list_t));
+		elem++;
+		cur = cur->next;
+	}
+	*pages = ceil((double)elem / ONPAGE);
+	fclose(scores);
+	return list;
+}
+
+void ShowScores(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset, SDL_Surface *left, SDL_Surface *right, SDL_Surface *backbmp, int gamesize) {
+	SDL_Surface *gamefield;
+	Surf_list scoresurfaces;
+	SDL_Event event;
+	Score_list_t *list,
+		*cur,
+		*bypoints,
+		*bytime,
+		*sorted;
+	memset(&scoresurfaces, 0, sizeof(Surf_list));
+	int exit = 0,
+		pages,
+		page = 1,
+		k = 0,
+		size = 16,
+		mouseX = 0,
+		mouseY = 0;
+	char num[12];
+	gamefield = SDL_CreateRGBSurface(0, FIELD_WIDTH, FIELD_HEIGHT, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	InsertSurf(&scoresurfaces, gamefield);
+
+	list = LoadScores(gamesize, &pages);
+
+	int bialy = SDL_MapRGB(screen->format, 0xFF, 0xFF, 0xFF);
+
+	SDL_FillRect(screen, NULL, bialy);
+	DrawSurface(screen, backbmp, SCREEN_WIDTH - 32, 32);
+
+	if (list != NULL) {
+		bypoints = SortByPoints(list);
+		bytime = SortByTime(list);
+		sorted = bypoints;
+		while (!exit) {
+			k = 1;
+			SDL_FillRect(gamefield, NULL, bialy);
+			DrawString(gamefield, 10, (size + 5), "NR", charset, size);
+			DrawString(gamefield, gamefield->w / 8, (size + 5), "NAME", charset, size);
+			if(sorted == bypoints)DrawString(gamefield, gamefield->w / 2 +size/2, 10, "^", charset, size);
+			else if (sorted == bytime)DrawString(gamefield, gamefield->w *3/4 + size / 2, 10, "^", charset, size);
+			DrawString(gamefield, gamefield->w / 2 - size * 2, (size + 5), "POINTS", charset, size);
+			DrawString(gamefield, gamefield->w * 3 / 4 - size, (size + 5), "TIME", charset, size);
+			if (sorted->gametime != 0) {
+				if (page == 1) {
+					sprintf(num, "%d", k);
+					DrawString(gamefield, 10, (size + 10)*(k + 1), num, charset, size);
+					DrawString(gamefield, gamefield->w / 7, (size + 10) * (k + 1), sorted->name, charset, size);
+					sprintf(num, "%d", sorted->points);
+					DrawString(gamefield, gamefield->w / 2, (size + 10) * (k + 1), num, charset, size);
+					sprintf(num, "%d", (int)ceil(sorted->gametime));
+					DrawString(gamefield, gamefield->w * 3 / 4, (size + 10) * (k + 1), num, charset, size);
+				}
+				k++;
+			}
+			cur = sorted;
+			while (cur->next != NULL) {
+				cur = cur->next;
+				if (cur->gametime != 0) {
+					if (k > (page - 1)*ONPAGE && k <= page * ONPAGE) {
+						sprintf(num, "%d", k);
+						DrawString(gamefield, 10, (size + 10) * (k + 1 - (page - 1)*ONPAGE), num, charset, 16);
+						DrawString(gamefield, gamefield->w / 7, (size + 10) * (k + 1 - (page - 1)*ONPAGE), cur->name, charset, 16);
+						sprintf(num, "%d", cur->points);
+						DrawString(gamefield, gamefield->w / 2, (size + 10) * (k + 1 - (page - 1)*ONPAGE), num, charset, size);
+						sprintf(num, "%d", (int)ceil(cur->gametime));
+						DrawString(gamefield, gamefield->w * 3 / 4, (size + 10) * (k + 1 - (page - 1)*ONPAGE), num, charset, size);
+					}
+					k++;
+				}
+			}
+
+			if (page < pages) {
+				DrawSurface(gamefield, right, gamefield->w - 32, gamefield->h - 32);
+			}
+			if (page > 1) {
+				DrawSurface(gamefield, left, 32, gamefield->h - 32);
+			}
+
+			DrawSurface(screen, gamefield, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 24);
+			SDL_UpdateTexture(scrtex, NULL, screen->pixels, screen->pitch);
+			SDL_RenderCopy(renderer, scrtex, NULL, NULL);
+			SDL_RenderPresent(renderer);
+
+			while (SDL_PollEvent(&event)) {
+				switch (event.type) {
+				case SDL_MOUSEMOTION:
+					mouseX = event.motion.x;
+					mouseY = event.motion.y;
+					break;
+				case SDL_KEYDOWN:
+					if (event.key.keysym.sym == SDLK_ESCAPE) exit = 1;
+					else if (event.key.keysym.sym == SDLK_LEFT && page > 1) page--;
+					else if (event.key.keysym.sym == SDLK_RIGHT && page < pages) page++;
+					else if (event.key.keysym.sym == SDLK_p) sorted = bypoints;
+					else if (event.key.keysym.sym == SDLK_t) sorted = bytime;
+					break;
+				case SDL_QUIT:
+					exit = 1;
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if(event.button.button == SDL_BUTTON_LEFT){
+						if (mouseY >= 16 && mouseY <= 16 + backbmp->h && mouseX >= SCREEN_WIDTH - 48 && mouseX <= SCREEN_WIDTH - 16) {
+							exit = 1;
+						}
+				}
+			}
+			}
+		}
+		FreeAllSurfaces(&scoresurfaces);
+		FreeScoreList(list);
+		FreeScoreList(bypoints);
+		FreeScoreList(bytime);
+	}
+}
+
+void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *renderer, SDL_Surface *charset, SDL_Surface *left, SDL_Surface *right, SDL_Surface *backbmp) {
 	SDL_Surface *gamefield;
 	Surf_list loadsurfaces;
 	saves_list_t *list;
@@ -744,6 +1132,7 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 	int chosenum = 0;
 	SDL_FillRect(gamefield, NULL, bialy);
 	SDL_FillRect(screen, NULL, bialy);
+	DrawSurface(screen, backbmp, SCREEN_WIDTH - 32, 32);
 
 	if (list != NULL) {
 		while (!exit) {
@@ -809,7 +1198,7 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 								cur = cur->next;
 							}
 							LoadGame(cur->savename, screen, scrtex, renderer, charset);
-							return;
+							exit = 1;
 						}
 					}
 					break;
@@ -826,9 +1215,12 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 							if (mouseX >= (SCREEN_WIDTH - SCREEN_HEIGHT) / 2 + 16 && mouseX <= (SCREEN_WIDTH - FIELD_WIDTH) / 2 + 48 && page > 1) {
 								page--;
 							}
-							if (mouseX >= (SCREEN_WIDTH - FIELD_HEIGHT) / 2 + gamefield->w - 48 && mouseX <= (SCREEN_WIDTH - FIELD_WIDTH) / 2 + gamefield->w - 16 && page < pages) {
+							else if (mouseX >= (SCREEN_WIDTH - FIELD_HEIGHT) / 2 + gamefield->w - 48 && mouseX <= (SCREEN_WIDTH - FIELD_WIDTH) / 2 + gamefield->w - 16 && page < pages) {
 								page++;
 							}
+						}
+						else if (mouseY >= 16 && mouseY <= 16 + backbmp->h && mouseX >= SCREEN_WIDTH - 48 && mouseX <= SCREEN_WIDTH - 16) {
+							exit = 1;
 						}
 					}
 				}
@@ -836,6 +1228,7 @@ void ShowSavedGames(SDL_Surface *screen, SDL_Texture *scrtex, SDL_Renderer *rend
 		}
 	}
 	FreeAllSurfaces(&loadsurfaces);
+	FreeSaveList(list);
 }
 
 // main
@@ -847,7 +1240,7 @@ int main(int argc, char **argv) {
 	double delta, worldTime, fpsTimer, fps, distance, etiSpeed;
 	SDL_Event event;
 	SDL_Surface *screen, *charset;
-	SDL_Surface *eti, *gamefield = 0, *eti_final = 0, *tile = 0, *emptile = 0, *tilescolor = 0, *logo = 0, *menu = 0, *sizeslogo, *gamesizes = 0, *left = 0, *right = 0, *newgame = 0, *loadgame = 0, *curgamesize = 0, *scores = 0;
+	SDL_Surface *eti, *gamefield = 0, *eti_final = 0, *tile = 0, *emptile = 0, *tilescolor = 0, *logo = 0, *menu = 0, *sizeslogo, *gamesizes = 0, *left = 0, *right = 0, *newgame = 0, *loadgame = 0, *curgamesize = 0, *scores = 0, *backbmp = 0;
 	SDL_Texture *scrtex;
 	SDL_Window *window;
 	SDL_Renderer *renderer;
@@ -867,7 +1260,6 @@ int main(int argc, char **argv) {
 	printf("wyjscie printfa trafia do tego okienka\n");
 	printf("printf output goes here\n");
 
-	//saves_list_t *savelist = LoadSaves();
 
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		printf("SDL_Init error: %s\n", SDL_GetError());
@@ -877,7 +1269,7 @@ int main(int argc, char **argv) {
 	// tryb pe³noekranowy / fullscreen mode
 	//rc = SDL_CreateWindowAndRenderer(0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP,
 	//                                 &window, &renderer);
-	rc = SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0,
+	rc = SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_FULLSCREEN_DESKTOP,
 		&window, &renderer);
 	if (rc != 0) {
 		SDL_Quit();
@@ -1068,7 +1460,7 @@ int main(int argc, char **argv) {
 
 	scores = SDL_LoadBMP("./scores.bmp");
 	if (scores == NULL) {
-		printf("SDL_LoadBMP(loadgame.bmp) error: %s\n", SDL_GetError());
+		printf("SDL_LoadBMP(scores.bmp) error: %s\n", SDL_GetError());
 		FreeAllSurfaces(&surfaces);
 		SDL_DestroyTexture(scrtex);
 		SDL_DestroyWindow(window);
@@ -1077,6 +1469,19 @@ int main(int argc, char **argv) {
 		return 1;
 	};
 	InsertSurf(&surfaces, scores);
+
+	backbmp = SDL_LoadBMP("./back.bmp");
+	if (backbmp == NULL) {
+		printf("SDL_LoadBMP(back.bmp) error: %s\n", SDL_GetError());
+		FreeAllSurfaces(&surfaces);
+		SDL_DestroyTexture(scrtex);
+		SDL_DestroyWindow(window);
+		SDL_DestroyRenderer(renderer);
+		SDL_Quit();
+		return 1;
+	};
+	InsertSurf(&surfaces, backbmp);
+
 
 	char text[128];
 	int czarny = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
@@ -1097,7 +1502,6 @@ int main(int argc, char **argv) {
 	worldTime = 0;
 	distance = 0;
 	etiSpeed = 1;
-	//SDL_BlitScaled(eti, NULL, eti,NULL);
 	SDL_BlitScaled(emptile, NULL, tile, NULL);
 
 	int mouseX = 0, mouseY = 0;
@@ -1120,14 +1524,6 @@ int main(int argc, char **argv) {
 		if (worldTime *FPS >= 1) {
 
 			SDL_FillRect(screen, NULL, bialy);
-			//SDL_FillRect(gamefield, NULL, ciemnyszary);
-			//SDL_FillRect(tile, NULL, szary);
-			/*for (int i = 0; i < GAME_SIZE; i++) {
-				for (int j = 0; j < GAME_SIZE; j++) {
-					DrawSurface(gamefield, tile, FIELD_WIDTH / GAME_SIZE / 2 * (1 + i * 2), FIELD_HEIGHT / GAME_SIZE / 2 * (1 + j * 2));
-				}
-
-			}*/
 			cutter.x = 0;
 			cutter.y = (gamesize - 3) * 36;
 			cutter.w = 146;
@@ -1148,13 +1544,8 @@ int main(int argc, char **argv) {
 				SCREEN_WIDTH / 2,
 				SCREEN_HEIGHT / 2);
 
-			/*DrawSurface(screen, eti,
-				SCREEN_WIDTH / 2 + sin(distance) * SCREEN_HEIGHT / 3,
-				SCREEN_HEIGHT / 2 + cos(distance) * SCREEN_HEIGHT / 3);*/
 			worldTime = 0;
 		}
-		//DrawRectangle(screen, SCREEN_WIDTH / 4 + cos(distance*3)*150, 100 + SCREEN_HEIGHT / 4 + sin(distance/2)*150, 100, 100, zielony, czerwony);
-		//DrawLine(screen, SCREEN_WIDTH / 4 + cos(distance * 3) * 150 + 100, 200 + SCREEN_HEIGHT / 4 + sin(distance / 2) * 150, 50*(cos(distance * 3) + 1), 1, 0, niebieski);
 		fpsTimer += delta;
 		if (fpsTimer > 0.5) {
 			fps = frames * 2;
@@ -1187,7 +1578,11 @@ int main(int argc, char **argv) {
 				else if (event.key.keysym.sym == SDLK_n) NewGame(gamesize, screen, scrtex, renderer, charset);
 				else if (event.key.keysym.sym == SDLK_LEFT && gamesize > 3) gamesize--;
 				else if (event.key.keysym.sym == SDLK_RIGHT && gamesize < 8) gamesize++;
-				else if (event.key.keysym.sym == SDLK_l) ShowSavedGames(screen, scrtex, renderer, charset,left,right);
+				else if (event.key.keysym.sym == SDLK_l) ShowSavedGames(screen, scrtex, renderer, charset,left,right, backbmp);
+				else if ((event.key.keysym.sym == SDLK_r)) {
+					printf("SHOWING SAVED SCORES\n");
+					ShowScores(screen, scrtex, renderer, charset, left, right, backbmp, gamesize);
+				}
 				break;
 			case SDL_KEYUP:
 				etiSpeed = 1.0;
@@ -1208,10 +1603,11 @@ int main(int argc, char **argv) {
 						}
 						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 310 - loadgame->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 310 + loadgame->h / 2)) {
 							printf("SHOWING SAVED GAMES\n");
-							ShowSavedGames(screen, scrtex, renderer, charset,left,right);
+							ShowSavedGames(screen, scrtex, renderer, charset,left,right, backbmp);
 						}
 						if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 360 - scores->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 360 + scores->h / 2)) {
 							printf("SHOWING SAVED SCORES\n");
+							ShowScores(screen, scrtex, renderer, charset, left, right, backbmp, gamesize);
 						}
 					}
 					if (mouseY >= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 220 - left->h / 2) && mouseY <= ((SCREEN_HEIGHT - FIELD_HEIGHT) / 2 + 220 + left->h / 2)) {
